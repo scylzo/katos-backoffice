@@ -71,7 +71,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     >
       <div className="space-y-6">
         <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <Input
             label="Nom"
             value={formData.nom}
@@ -119,20 +119,20 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         </div>
 
         {selectedProject && (
-          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+          <div className="mt-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
             <h4 className="text-sm font-semibold text-gray-900 mb-3">Aperçu du projet</h4>
             <div className="space-y-3">
               <ImageCarousel
                 images={selectedProject.images}
                 alt={selectedProject.name}
                 aspectRatio="wide"
-                className="h-32"
+                className="h-24 sm:h-32"
                 showDots={true}
                 showArrows={true}
               />
               <div>
-                <h5 className="font-medium text-gray-900">{selectedProject.name}</h5>
-                <p className="text-sm text-gray-600 mt-1">{selectedProject.description}</p>
+                <h5 className="font-medium text-gray-900 text-sm sm:text-base">{selectedProject.name}</h5>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2 sm:line-clamp-3">{selectedProject.description}</p>
               </div>
             </div>
           </div>
@@ -153,15 +153,16 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           </select>
         </div>
 
-        <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+        <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200">
           <Button
             type="button"
             variant="outline"
             onClick={handleClose}
+            className="w-full sm:w-auto order-2 sm:order-1"
           >
             Annuler
           </Button>
-          <Button type="submit">
+          <Button type="submit" className="w-full sm:w-auto order-1 sm:order-2">
             {client ? 'Modifier' : 'Créer'}
           </Button>
         </div>

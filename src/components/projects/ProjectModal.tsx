@@ -70,7 +70,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
     >
       <div className="space-y-6">
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <Input
               label="Nom du projet"
               value={formData.name}
@@ -192,15 +192,16 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
             )}
           </div>
 
-          <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+          <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200">
             <Button
               type="button"
               variant="outline"
               onClick={handleClose}
+              className="w-full sm:w-auto order-2 sm:order-1"
             >
               Annuler
             </Button>
-            <Button type="submit">
+            <Button type="submit" className="w-full sm:w-auto order-1 sm:order-2">
               {project ? 'Modifier' : 'Créer'}
             </Button>
           </div>
