@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ProjectState, Project } from '../types';
+import type { ProjectState } from '../types';
 
 // Import villa images
 import F3_1 from '../assets/villas/F3_1.jpeg';
