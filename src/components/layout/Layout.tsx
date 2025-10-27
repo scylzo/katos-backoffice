@@ -2,7 +2,7 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
-import { LayoutProvider } from '../../context/LayoutContext';
+import { LayoutProvider } from '../../context/LayoutProvider';
 
 export const Layout: React.FC = () => {
   return (

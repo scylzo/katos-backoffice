@@ -1,7 +1,7 @@
 import React from 'react';
 import { Bell, User, Menu, X } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
-import { useLayout } from '../../context/LayoutContext';
+import { useLayout } from '../../hooks/useLayout';
 
 export const TopBar: React.FC = () => {
   const { user } = useAuthStore();

@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Users, ShoppingBag, Settings, LogOut, Building2 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
-import { useLayout } from '../../context/LayoutContext';
+import { useLayout } from '../../hooks/useLayout';
 import { cn } from '../../utils/cn';
 import logo from '../../assets/logo.png';
 

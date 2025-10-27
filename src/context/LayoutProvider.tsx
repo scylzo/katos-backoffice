@@ -1,20 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-
-interface LayoutContextType {
-  isMobileMenuOpen: boolean;
-  setIsMobileMenuOpen: (open: boolean) => void;
-  toggleMobileMenu: () => void;
-}
-
-const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
-
-export const useLayout = () => {
-  const context = useContext(LayoutContext);
-  if (!context) {
-    throw new Error('useLayout must be used within a LayoutProvider');
-  }
-  return context;
-};
+import React, { useState, ReactNode } from 'react';
+import { LayoutContext } from './LayoutContext';
 
 interface LayoutProviderProps {
   children: ReactNode;
