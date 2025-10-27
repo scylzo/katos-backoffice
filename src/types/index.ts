@@ -6,14 +6,20 @@ export interface User {
 
 export interface Client {
   id: string;
-  name: string;
-  phone: string;
-  email: string;
-  address: string;
-  projectType: string;
-  surface: number;
+  nom: string;
+  prenom: string;
+  localisationSite: string;
+  projetAdhere: string;
   status: 'En cours' | 'Terminé' | 'En attente';
   createdAt: string;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  images: string[];
+  type: string;
 }
 
 export interface Material {
@@ -45,4 +51,11 @@ export interface MaterialState {
   addMaterial: (material: Omit<Material, 'id'>) => void;
   updateMaterial: (id: string, material: Partial<Material>) => void;
   deleteMaterial: (id: string) => void;
+}
+
+export interface ProjectState {
+  projects: Project[];
+  addProject: (project: Omit<Project, 'id'>) => void;
+  updateProject: (id: string, project: Partial<Project>) => void;
+  deleteProject: (id: string) => void;
 }

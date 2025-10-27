@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, ShoppingBag, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, ShoppingBag, Settings, LogOut, Building2 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { cn } from '../../utils/cn';
 import logo from '../../assets/logo.png';
@@ -8,6 +8,7 @@ import logo from '../../assets/logo.png';
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Clients', href: '/clients', icon: Users },
+  { name: 'Projets', href: '/projects', icon: Building2 },
   { name: 'Boutique', href: '/boutique', icon: ShoppingBag },
   { name: 'Paramètres', href: '/settings', icon: Settings },
 ];

@@ -10,7 +10,7 @@ export const TopBar: React.FC = () => {
       <div className="flex items-center justify-between h-full px-6">
         <div className="flex items-center">
           <h2 className="text-xl font-semibold text-gray-800">
-            Backoffice Katos Construction
+             Projet Katos connect
           </h2>
         </div>
 

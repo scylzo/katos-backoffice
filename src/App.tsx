@@ -5,6 +5,7 @@ import { Layout } from './components/layout/Layout';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Clients } from './pages/Clients';
+import { Projects } from './pages/Projects';
 import { Boutique } from './pages/Boutique';
 import { Settings } from './pages/Settings';
 import 'react-toastify/dist/ReactToastify.css';
@@ -26,6 +27,7 @@ function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="clients" element={<Clients />} />
+            <Route path="projects" element={<Projects />} />
             <Route path="boutique" element={<Boutique />} />
             <Route path="settings" element={<Settings />} />
           </Route>
