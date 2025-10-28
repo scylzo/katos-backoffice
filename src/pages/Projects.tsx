@@ -49,7 +49,7 @@ export const Projects: React.FC = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-4">
         {projects.map((project) => (
           <Card key={project.id} className="overflow-hidden flex flex-col">
             <ImageCarousel
@@ -63,10 +63,7 @@ export const Projects: React.FC = () => {
             <div className="p-4 sm:p-6 flex-1 flex flex-col">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-2">
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{project.name}</h3>
-                  <span className="inline-block px-2 py-1 text-xs font-medium bg-primary-100 text-primary-800 rounded-full mt-1">
-                    {project.type}
-                  </span>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 leading-tight  break-words">{project.name}</h3>
                 </div>
                 <div className="flex space-x-1 sm:space-x-2 flex-shrink-0">
                   <Button
