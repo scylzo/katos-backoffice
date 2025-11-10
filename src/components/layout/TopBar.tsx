@@ -1,7 +1,8 @@
 import React from 'react';
-import { Bell, User, Menu, X } from 'lucide-react';
+import { User, Menu, X } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useLayout } from '../../hooks/useLayout';
+import { NotificationDropdown } from '../ui/NotificationDropdown';
 
 export const TopBar: React.FC = () => {
   const { user } = useAuthStore();
@@ -37,10 +38,7 @@ export const TopBar: React.FC = () => {
         {/* Right section - Notifications + Profile */}
         <div className="flex items-center gap-2 sm:gap-4">
           {/* Notifications */}
-          <button className="relative p-2 sm:p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg sm:rounded-xl transition-all duration-200 group touch-manipulation">
-            <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="absolute top-1 right-1 sm:top-2 sm:right-2 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-red-500 rounded-full animate-pulse"></span>
-          </button>
+          <NotificationDropdown />
 
           {/* User Profile */}
           <div className="flex items-center gap-2 sm:gap-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl sm:rounded-2xl p-1.5 sm:p-2 hover:from-gray-100 hover:to-gray-150 transition-all duration-300 cursor-pointer group">
@@ -51,7 +49,7 @@ export const TopBar: React.FC = () => {
             {/* User info - Hidden on small screens */}
             <div className="hidden sm:flex flex-col">
               <span className="text-xs sm:text-sm font-semibold text-gray-800 group-hover:text-gray-900 transition-colors truncate max-w-24 lg:max-w-none">
-                {user?.name}
+                {user?.displayName || 'Utilisateur'}
               </span>
               <span className="text-xs text-gray-500">Admin</span>
             </div>

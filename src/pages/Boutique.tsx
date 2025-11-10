@@ -3,14 +3,17 @@ import { Plus, Edit, Trash2, ShoppingBag } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { MaterialModal } from '../components/boutique/MaterialModal';
 import { useMaterialStore } from '../store/materialStore';
+import { useConfirm } from '../hooks/useConfirm';
 import type { Material } from '../types';
 
 export const Boutique: React.FC = () => {
   const { materials, addMaterial, updateMaterial, deleteMaterial } = useMaterialStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<Material | undefined>();
+  const { confirmState, confirm, handleConfirm, handleClose } = useConfirm();
   const handleAddMaterial = (materialData: Omit<Material, 'id'>) => {
     addMaterial(materialData);
     toast.success('Matériau ajouté avec succès à la vitrine');
@@ -28,11 +31,19 @@ export const Boutique: React.FC = () => {
     }
   };
 
-  const handleDeleteMaterial = (id: string) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce matériau ?')) {
-      deleteMaterial(id);
-      toast.success('Matériau supprimé avec succès');
-    }
+  const handleDeleteMaterial = (material: Material) => {
+    confirm(
+      () => {
+        deleteMaterial(material.id);
+        toast.success('Matériau supprimé avec succès');
+      },
+      {
+        title: 'Supprimer',
+        message: `Êtes-vous sûr de vouloir supprimer le matériau "${material.name}" ? Cette action est irréversible et supprimera également l'image associée.`,
+        confirmText: 'Supprimer le matériau',
+        type: 'danger'
+      }
+    );
   };
 
   const handleCloseModal = () => {
@@ -109,7 +120,7 @@ export const Boutique: React.FC = () => {
                   <Button
                     variant="danger"
                     size="sm"
-                    onClick={() => handleDeleteMaterial(material.id)}
+                    onClick={() => handleDeleteMaterial(material)}
                     className="sm:w-auto w-full text-xs sm:text-sm"
                   >
                     <Trash2 className="w-3 h-3 sm:mr-1" />
@@ -145,6 +156,18 @@ export const Boutique: React.FC = () => {
         onClose={handleCloseModal}
         onSubmit={selectedMaterial ? handleUpdateMaterial : handleAddMaterial}
         material={selectedMaterial}
+      />
+
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        onClose={handleClose}
+        onConfirm={handleConfirm}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        type={confirmState.type}
+        loading={confirmState.loading}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -20,14 +20,39 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   client,
 }) => {
   const [formData, setFormData] = useState({
-    nom: client?.nom || '',
-    prenom: client?.prenom || '',
-    localisationSite: client?.localisationSite || '',
-    projetAdhere: client?.projetAdhere || '',
-    status: client?.status || 'En attente' as const,
+    nom: '',
+    prenom: '',
+    email: '',
+    localisationSite: '',
+    projetAdhere: '',
+    status: 'En attente' as const,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Mettre à jour le formulaire quand le client change
+  useEffect(() => {
+    if (client) {
+      setFormData({
+        nom: client.nom || '',
+        prenom: client.prenom || '',
+        email: client.email || '',
+        localisationSite: client.localisationSite || '',
+        projetAdhere: client.projetAdhere || '',
+        status: client.status || 'En attente',
+      });
+    } else {
+      setFormData({
+        nom: '',
+        prenom: '',
+        email: '',
+        localisationSite: '',
+        projetAdhere: '',
+        status: 'En attente',
+      });
+    }
+    setErrors({});
+  }, [client, isOpen]);
   const { projects } = useProjectStore();
   const selectedProject = projects.find(p => p.name === formData.projetAdhere);
 
@@ -38,6 +63,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({
 
     if (!formData.nom) newErrors.nom = 'Le nom est requis';
     if (!formData.prenom) newErrors.prenom = 'Le prénom est requis';
+    if (!formData.email) newErrors.email = 'L\'email est requis';
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'L\'email n\'est pas valide';
+    }
     if (!formData.localisationSite) newErrors.localisationSite = 'La localisation du site est requise';
     if (!formData.projetAdhere) newErrors.projetAdhere = 'Le projet adhéré est requis';
 
@@ -54,6 +83,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     setFormData({
       nom: '',
       prenom: '',
+      email: '',
       localisationSite: '',
       projetAdhere: '',
       status: 'En attente',
@@ -90,6 +120,15 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         </div>
 
         <Input
+          label="Email"
+          type="email"
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          error={errors.email}
+          placeholder="amadou.diallo@example.com"
+        />
+
+        <Input
           label="Localisation du site"
           value={formData.localisationSite}
           onChange={(e) => setFormData({ ...formData, localisationSite: e.target.value })}
@@ -108,8 +147,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           >
             <option value="">Sélectionner un projet</option>
             {projects.map((project) => (
-              <option key={project.id} value={project.name}>
-                {project.name}
+              <option key={project.id} value={`${project.name} ${project.type}`}>
+                {project.name} {project.type}
               </option>
             ))}
           </select>

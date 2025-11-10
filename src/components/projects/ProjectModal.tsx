@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { MultiImageUploader } from '../ui/MultiImageUploader';
 import { ImageCarousel } from '../ui/ImageCarousel';
-import { Plus, X } from 'lucide-react';
 import type { Project } from '../../types';
 
 interface ProjectModalProps {
@@ -20,15 +20,33 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
   project,
 }) => {
   const [formData, setFormData] = useState({
-    name: project?.name || '',
-    type: project?.type || '',
-    description: project?.description || '',
-    images: project?.images || [],
+    name: '',
+    type: '',
+    description: '',
+    images: [],
   });
 
-  const [newImageUrl, setNewImageUrl] = useState('');
-
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Mettre à jour le formulaire quand le projet change
+  useEffect(() => {
+    if (project) {
+      setFormData({
+        name: project.name || '',
+        type: project.type || '',
+        description: project.description || '',
+        images: project.images || [],
+      });
+    } else {
+      setFormData({
+        name: '',
+        type: '',
+        description: '',
+        images: [],
+      });
+    }
+    setErrors({});
+  }, [project, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +74,6 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
       description: '',
       images: [],
     });
-    setNewImageUrl('');
     setErrors({});
     onClose();
   };
@@ -103,78 +120,31 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
             </div>
           </div>
 
-          <div className="space-y-4">
+          {/* Section Upload Images */}
+          <MultiImageUploader
+            images={formData.images}
+            onChange={(images) => setFormData({ ...formData, images })}
+            maxImages={8}
+            label="Images du projet"
+            error={errors.images}
+          />
+
+          {/* Aperçu carousel si images présentes */}
+          {formData.images.length > 0 && (
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-gray-900">
-                Images du projet
+                Aperçu du projet
               </label>
-              <div className="flex gap-2">
-                <Input
-                  value={newImageUrl}
-                  onChange={(e) => setNewImageUrl(e.target.value)}
-                  placeholder="https://example.com/image.jpg"
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  onClick={() => {
-                    if (newImageUrl.trim()) {
-                      setFormData({
-                        ...formData,
-                        images: [...formData.images, newImageUrl.trim()]
-                      });
-                      setNewImageUrl('');
-                    }
-                  }}
-                  variant="outline"
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-              {errors.images && (
-                <p className="text-red-600 text-xs mt-1">{errors.images}</p>
-              )}
+              <ImageCarousel
+                images={formData.images}
+                alt="Aperçu du projet"
+                aspectRatio="video"
+                className="h-48"
+                showDots={true}
+                showArrows={true}
+              />
             </div>
-
-            {formData.images.length > 0 && (
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-900">
-                  Aperçu des images ({formData.images.length})
-                </label>
-                <ImageCarousel
-                  images={formData.images}
-                  alt="Aperçu du projet"
-                  aspectRatio="video"
-                  className="h-48"
-                  showDots={true}
-                  showArrows={true}
-                />
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.images.map((image, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={image}
-                        alt={`Image ${index + 1}`}
-                        className="w-16 h-12 object-cover rounded border-2 border-gray-200"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFormData({
-                            ...formData,
-                            images: formData.images.filter((_, i) => i !== index)
-                          });
-                        }}
-                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          )}
 
           <div className="space-y-2">
             <label className="block text-sm font-semibold text-gray-900">

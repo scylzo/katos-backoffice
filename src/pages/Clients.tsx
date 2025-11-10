@@ -1,20 +1,53 @@
 import React, { useState } from 'react';
-import { Plus, Eye, Edit, Trash2, Phone, MapPin, Users } from 'lucide-react';
+import { Plus, Eye, Edit, Trash2, Phone, MapPin, Users, Mail } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { Timestamp } from 'firebase/firestore';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { ClientModal } from '../components/clients/ClientModal';
+import { ClientDocumentsModal } from '../components/clients/ClientDocumentsModal';
+import { ClientInvitations } from '../components/clients/ClientInvitations';
+import { Modal } from '../components/ui/Modal';
 import { useClientStore } from '../store/clientStore';
+import { useConfirm } from '../hooks/useConfirm';
 import type { Client } from '../types';
+import type { FirebaseClient } from '../types/firebase';
 
 export const Clients: React.FC = () => {
   const { clients, addClient, updateClient, deleteClient } = useClientStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | undefined>();
+  const [isDocumentsModalOpen, setIsDocumentsModalOpen] = useState(false);
+  const [viewingClient, setViewingClient] = useState<Client | undefined>();
+  const [isInvitationsModalOpen, setIsInvitationsModalOpen] = useState(false);
+  const [invitationClient, setInvitationClient] = useState<Client | undefined>();
+  const { confirmState, confirm, handleConfirm, handleClose } = useConfirm();
 
-  const handleAddClient = (clientData: Omit<Client, 'id' | 'createdAt'>) => {
-    addClient(clientData);
-    toast.success('Profil client créé avec succès');
+  // Convertir Client vers FirebaseClient pour les invitations
+  const convertToFirebaseClient = (client: Client): FirebaseClient => ({
+    id: client.id,
+    nom: client.nom,
+    prenom: client.prenom,
+    email: client.email,
+    localisationSite: client.localisationSite,
+    projetAdhere: client.projetAdhere,
+    status: client.status,
+    invitationStatus: client.invitationStatus,
+    invitationToken: client.invitationToken,
+    userId: client.userId,
+    createdAt: Timestamp.fromDate(new Date(client.createdAt)),
+    invitedAt: client.invitedAt ? Timestamp.fromDate(new Date(client.invitedAt)) : undefined,
+    acceptedAt: client.acceptedAt ? Timestamp.fromDate(new Date(client.acceptedAt)) : undefined
+  });
+
+  const handleAddClient = async (clientData: Omit<Client, 'id' | 'createdAt'>) => {
+    const success = await addClient(clientData);
+    if (success) {
+      toast.success('Profil client créé avec succès');
+    } else {
+      toast.error('Erreur lors de la création du client');
+    }
   };
 
   const handleEditClient = (client: Client) => {
@@ -22,18 +55,30 @@ export const Clients: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleUpdateClient = (clientData: Omit<Client, 'id' | 'createdAt'>) => {
+  const handleUpdateClient = async (clientData: Omit<Client, 'id' | 'createdAt'>) => {
     if (selectedClient) {
-      updateClient(selectedClient.id, clientData);
-      toast.success('Client modifié avec succès');
+      const success = await updateClient(selectedClient.id, clientData);
+      if (success) {
+        toast.success('Client modifié avec succès');
+      } else {
+        toast.error('Erreur lors de la modification du client');
+      }
     }
   };
 
-  const handleDeleteClient = (id: string) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce client ?')) {
-      deleteClient(id);
-      toast.success('Client supprimé avec succès');
-    }
+  const handleDeleteClient = (client: Client) => {
+    confirm(
+      () => {
+        deleteClient(client.id);
+        toast.success('Client supprimé avec succès');
+      },
+      {
+        title: 'Supprimer',
+        message: `Êtes-vous sûr de vouloir supprimer le client "${client.prenom} ${client.nom}" ? Cette action est irréversible.`,
+        confirmText: 'Supprimer le client',
+        type: 'danger'
+      }
+    );
   };
 
   const handleCloseModal = () => {
@@ -86,6 +131,9 @@ export const Clients: React.FC = () => {
                   <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Statut
                   </th>
+                  <th className="hidden lg:table-cell px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    App Mobile
+                  </th>
                   <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
@@ -112,10 +160,10 @@ export const Clients: React.FC = () => {
                     <td className="hidden sm:table-cell px-3 sm:px-6 py-3 sm:py-4">
                       <div className="space-y-1">
                         <div className="text-xs sm:text-sm text-gray-900 truncate">
-                          Informations contact
+                          {client.email || 'Aucun email'}
                         </div>
                         <div className="text-xs sm:text-sm text-gray-500 truncate">
-                          Voir détails
+                          Contact principal
                         </div>
                       </div>
                     </td>
@@ -138,29 +186,61 @@ export const Clients: React.FC = () => {
                         </span>
                       </span>
                     </td>
+                    <td className="hidden lg:table-cell px-3 sm:px-6 py-3 sm:py-4">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${
+                          client.invitationStatus === 'accepted' ? 'bg-green-500' :
+                          client.invitationStatus === 'pending' || client.invitationStatus === 'sent' ? 'bg-yellow-500' :
+                          'bg-gray-300'
+                        }`} />
+                        <span className="text-xs text-gray-600">
+                          {client.invitationStatus === 'accepted' ? 'Connecté' :
+                           client.invitationStatus === 'pending' || client.invitationStatus === 'sent' ? 'En attente' :
+                           'Non invité'}
+                        </span>
+                      </div>
+                    </td>
                     <td className="px-3 sm:px-6 py-3 sm:py-4">
                       <div className="flex space-x-1 sm:space-x-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => alert('Fonctionnalité de visualisation à venir')}
+                          onClick={() => {
+                            setViewingClient(client);
+                            setIsDocumentsModalOpen(true);
+                          }}
                           className="p-1 sm:p-2"
+                          title="Voir documents"
                         >
                           <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => {
+                            setInvitationClient(client);
+                            setIsInvitationsModalOpen(true);
+                          }}
+                          className="p-1 sm:p-2"
+                          title="Gérer invitations"
+                        >
+                          <Mail className="w-3 h-3 sm:w-4 sm:h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleEditClient(client)}
                           className="p-1 sm:p-2"
+                          title="Modifier"
                         >
                           <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                         </Button>
                         <Button
                           variant="danger"
                           size="sm"
-                          onClick={() => handleDeleteClient(client.id)}
+                          onClick={() => handleDeleteClient(client)}
                           className="p-1 sm:p-2"
+                          title="Supprimer"
                         >
                           <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                         </Button>
@@ -196,6 +276,45 @@ export const Clients: React.FC = () => {
         onSubmit={selectedClient ? handleUpdateClient : handleAddClient}
         client={selectedClient}
       />
+
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        onClose={handleClose}
+        onConfirm={handleConfirm}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        type={confirmState.type}
+        loading={confirmState.loading}
+      />
+
+      {viewingClient && (
+        <ClientDocumentsModal
+          isOpen={isDocumentsModalOpen}
+          onClose={() => setIsDocumentsModalOpen(false)}
+          client={viewingClient}
+        />
+      )}
+
+      {invitationClient && (
+        <Modal
+          isOpen={isInvitationsModalOpen}
+          onClose={() => {
+            setIsInvitationsModalOpen(false);
+            setInvitationClient(undefined);
+          }}
+          title={`Invitations - ${invitationClient.prenom} ${invitationClient.nom}`}
+          size="lg"
+        >
+          <ClientInvitations
+            client={convertToFirebaseClient(invitationClient)}
+            onUpdate={() => {
+              // Les données seront automatiquement mises à jour via le listener en temps réel
+            }}
+          />
+        </Modal>
+      )}
     </div>
   );
 };

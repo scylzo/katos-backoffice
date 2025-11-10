@@ -8,10 +8,16 @@ export interface Client {
   id: string;
   nom: string;
   prenom: string;
+  email: string;
   localisationSite: string;
   projetAdhere: string;
   status: 'En cours' | 'Terminé' | 'En attente';
+  invitationStatus: 'pending' | 'sent' | 'accepted' | 'declined';
+  invitationToken?: string;
+  userId?: string;
   createdAt: string;
+  invitedAt?: string;
+  acceptedAt?: string;
 }
 
 export interface Project {
@@ -30,6 +36,35 @@ export interface Material {
   image: string;
   supplier: string;
   description: string;
+}
+
+export interface ClientDocument {
+  id: string;
+  clientId: string;
+  name: string;
+  type: 'plan' | 'contract' | 'photo' | 'other';
+  url: string;
+  size: number;
+  mimeType: string;
+  uploadedAt: string;
+  description?: string;
+}
+
+export interface Notification {
+  id: string;
+  type: 'document_upload' | 'material_selection' | 'client_update';
+  title: string;
+  message: string;
+  clientId: string;
+  clientName: string;
+  isRead: boolean;
+  createdAt: string;
+  data?: {
+    documentName?: string;
+    materialName?: string;
+    materialId?: string;
+    [key: string]: any;
+  };
 }
 
 export interface AuthState {

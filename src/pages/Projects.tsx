@@ -3,14 +3,17 @@ import { Plus, Edit, Trash2 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { ImageCarousel } from '../components/ui/ImageCarousel';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { ProjectModal } from '../components/projects/ProjectModal';
 import { useProjectStore } from '../store/projectStore';
+import { useConfirm } from '../hooks/useConfirm';
 import type { Project } from '../types';
 
 export const Projects: React.FC = () => {
   const { projects, addProject, updateProject, deleteProject } = useProjectStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | undefined>();
+  const { confirmState, confirm, handleConfirm, handleClose } = useConfirm();
 
   const handleAddProject = () => {
     setEditingProject(undefined);
@@ -22,10 +25,16 @@ export const Projects: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDeleteProject = (id: string) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce projet ?')) {
-      deleteProject(id);
-    }
+  const handleDeleteProject = (project: Project) => {
+    confirm(
+      () => deleteProject(project.id),
+      {
+        title: 'Supprimer',
+        message: `Êtes-vous sûr de vouloir supprimer le projet "${project.name} ${project.type}" ? Cette action est irréversible et supprimera également toutes les images associées.`,
+        confirmText: 'Supprimer le projet',
+        type: 'danger'
+      }
+    );
   };
 
   const handleSubmit = (projectData: Omit<Project, 'id'>) => {
@@ -54,7 +63,7 @@ export const Projects: React.FC = () => {
           <Card key={project.id} className="overflow-hidden flex flex-col">
             <ImageCarousel
               images={project.images}
-              alt={project.name}
+              alt={`${project.name} ${project.type}`}
               aspectRatio="video"
               showDots={true}
               showArrows={true}
@@ -63,7 +72,9 @@ export const Projects: React.FC = () => {
             <div className="p-4 sm:p-6 flex-1 flex flex-col">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-2">
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 leading-tight  break-words">{project.name}</h3>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 leading-tight break-words">
+                    {project.name} {project.type}
+                  </h3>
                 </div>
                 <div className="flex space-x-1 sm:space-x-2 flex-shrink-0">
                   <Button
@@ -77,7 +88,7 @@ export const Projects: React.FC = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleDeleteProject(project.id)}
+                    onClick={() => handleDeleteProject(project)}
                     className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2"
                   >
                     <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -109,6 +120,18 @@ export const Projects: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleSubmit}
         project={editingProject}
+      />
+
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        onClose={handleClose}
+        onConfirm={handleConfirm}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        type={confirmState.type}
+        loading={confirmState.loading}
       />
     </div>
   );

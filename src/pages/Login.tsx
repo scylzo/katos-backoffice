@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { Mail, Lock, Building2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAuthStore } from '../store/authStore';
@@ -9,13 +9,26 @@ import { Input } from '../components/ui/Input';
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, isAuthenticated } = useAuthStore();
+  const { login, isAuthenticated, loading, error } = useAuthStore();
 
+  // Afficher un loader pendant la vérification de l'authentification
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Vérification de votre session...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Rediriger seulement si authentifié et pas en cours de chargement
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!email || !password) {
@@ -23,9 +36,11 @@ export const Login: React.FC = () => {
       return;
     }
 
-    const success = login(email, password);
-    if (!success) {
-      toast.error('Email ou mot de passe incorrect');
+    const success = await login(email, password);
+    if (success) {
+      toast.success('Connexion réussie');
+    } else {
+      toast.error(error || 'Email ou mot de passe incorrect');
     }
   };
 
@@ -73,12 +88,18 @@ export const Login: React.FC = () => {
               type="submit"
               className="w-full"
               size="lg"
+              disabled={loading}
             >
-              Se connecter
+              {loading ? 'Connexion...' : 'Se connecter'}
             </Button>
 
-            <div className="text-xs text-gray-500 text-center">
-              Compte de test: admin@katos.sn / 1234
+            <div className="text-center">
+              <Link
+                to="/register"
+                className="text-sm text-blue-600 hover:text-blue-500 font-medium"
+              >
+                Première connexion ? Créer votre compte
+              </Link>
             </div>
           </form>
         </div>

@@ -1,80 +1,135 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { ProjectState } from '../types';
+import { Timestamp } from 'firebase/firestore';
+import { projectService } from '../services/projectService';
+import type { FirebaseProject } from '../types/firebase';
 
-// Import villa images
-import F3_1 from '../assets/villas/F3_1.jpeg';
-import F3_2 from '../assets/villas/F3_2.jpeg';
-import F3_4 from '../assets/villas/F3_4.jpeg';
-import F4_1 from '../assets/villas/F4_1.jpeg';
-import F4_2 from '../assets/villas/F4_2.jpeg';
-import F6_1 from '../assets/villas/F6_1.jpeg';
-import F6_2 from '../assets/villas/F6_2.jpeg';
-import F6_3 from '../assets/villas/F6_3.jpeg';
+// Conversion des types pour compatibilité
+interface ProjectForApp {
+  id: string;
+  name: string;
+  description: string;
+  images: string[];
+  type: string;
+}
 
-export const useProjectStore = create<ProjectState>()(
-  persist(
-    (set) => ({
-      projects: [
-        {
-          id: 'villa-kenza-f3',
-          name: 'Villa Kenza F3',
-          type: 'F3',
-          description: 'Villa moderne de type F3 avec un design contemporain. Comprend 3 pièces principales, cuisine équipée, salon spacieux et terrasse. Idéale pour une famille de 4 personnes.',
-          images: [F3_1, F3_2, F3_4]
-        },
-        {
-          id: 'villa-zahra-f3',
-          name: 'Villa Zahra F3',
-          type: 'F3',
-          description: 'Villa élégante de type F3 avec finitions haut de gamme. Architecture traditionnelle revisitée avec des matériaux nobles. Jardin privatif et parking inclus.',
-          images: [F3_2, F3_1, F3_4]
-        },
-        {
-          id: 'villa-fatima-f4',
-          name: 'Villa Fatima F4',
-          type: 'F4',
-          description: 'Spacieuse villa F4 avec 4 chambres et 2 salles de bain. Grande cuisine américaine ouverte sur le séjour. Terrasse couverte et espace barbecue extérieur.',
-          images: [F4_1, F4_2]
-        },
-        {
-          id: 'villa-amina-f6',
-          name: 'Villa Amina F6',
-          type: 'F6',
-          description: 'Villa familiale F6 de standing avec 6 pièces. Double salon, bureau, 4 chambres avec dressing. Piscine privée et grand jardin paysager. Idéale pour grande famille.',
-          images: [F6_1, F6_2, F6_3]
-        },
-        {
-          id: 'villa-aicha-f6',
-          name: 'Villa Aicha F6',
-          type: 'F6',
-          description: 'Villa de prestige F6 avec architecture moderne et équipements haut de gamme. Suite parentale avec dressing, 5 autres chambres, double garage et piscine à débordement.',
-          images: [F6_2, F6_1, F6_3]
-        }
-      ],
-      addProject: (project) =>
-        set((state) => ({
-          projects: [
-            ...state.projects,
-            {
-              ...project,
-              id: `project-${Date.now()}`,
-            },
-          ],
-        })),
-      updateProject: (id, updatedProject) =>
-        set((state) => ({
-          projects: state.projects.map((project) =>
-            project.id === id ? { ...project, ...updatedProject } : project
-          ),
-        })),
-      deleteProject: (id) =>
-        set((state) => ({
-          projects: state.projects.filter((project) => project.id !== id),
-        })),
-    }),
-    {
-      name: 'project-storage',
+interface FirebaseProjectState {
+  projects: ProjectForApp[];
+  loading: boolean;
+  error: string | null;
+  addProject: (project: Omit<ProjectForApp, 'id'>) => Promise<boolean>;
+  updateProject: (id: string, updates: Partial<ProjectForApp>) => Promise<boolean>;
+  deleteProject: (id: string) => Promise<boolean>;
+  uploadProjectImages: (files: File[], projectId?: string) => Promise<string[]>;
+  initializeProjects: () => void;
+  setProjects: (projects: ProjectForApp[]) => void;
+  setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+}
+
+// Fonction pour convertir FirebaseProject vers ProjectForApp
+const convertFirebaseProject = (firebaseProject: FirebaseProject): ProjectForApp => ({
+  id: firebaseProject.id!,
+  name: firebaseProject.name,
+  description: firebaseProject.description,
+  images: firebaseProject.images,
+  type: firebaseProject.type
+});
+
+// Fonction pour convertir ProjectForApp vers FirebaseProject
+const convertToFirebaseProject = (project: Omit<ProjectForApp, 'id'>): Omit<FirebaseProject, 'id' | 'createdAt'> => ({
+  name: project.name,
+  description: project.description,
+  images: project.images,
+  type: project.type
+});
+
+export const useProjectStore = create<FirebaseProjectState>((set, get) => ({
+  projects: [],
+  loading: false,
+  error: null,
+
+  addProject: async (projectData) => {
+    try {
+      set({ loading: true, error: null });
+      const firebaseData = convertToFirebaseProject(projectData);
+      await projectService.addProject(firebaseData);
+      set({ loading: false });
+      return true;
+    } catch (error: any) {
+      set({
+        error: error.message || 'Erreur lors de l\'ajout du projet',
+        loading: false
+      });
+      return false;
     }
-  )
-);
+  },
+
+  updateProject: async (id, updates) => {
+    try {
+      set({ loading: true, error: null });
+      const firebaseUpdates: any = {};
+
+      // Copier tous les champs fournis (même s'ils sont vides)
+      if (updates.name !== undefined) firebaseUpdates.name = updates.name;
+      if (updates.description !== undefined) firebaseUpdates.description = updates.description;
+      if (updates.images !== undefined) firebaseUpdates.images = updates.images;
+      if (updates.type !== undefined) firebaseUpdates.type = updates.type;
+
+      await projectService.updateProject(id, firebaseUpdates);
+      set({ loading: false });
+      return true;
+    } catch (error: any) {
+      set({
+        error: error.message || 'Erreur lors de la mise à jour du projet',
+        loading: false
+      });
+      return false;
+    }
+  },
+
+  deleteProject: async (id) => {
+    try {
+      set({ loading: true, error: null });
+      await projectService.deleteProject(id);
+      set({ loading: false });
+      return true;
+    } catch (error: any) {
+      set({
+        error: error.message || 'Erreur lors de la suppression du projet',
+        loading: false
+      });
+      return false;
+    }
+  },
+
+  uploadProjectImages: async (files, projectId) => {
+    try {
+      set({ error: null });
+      return await projectService.uploadProjectImages(files, projectId);
+    } catch (error: any) {
+      set({ error: error.message || 'Erreur lors de l\'upload des images' });
+      return [];
+    }
+  },
+
+  initializeProjects: () => {
+    set({ loading: true, error: null });
+
+    // Écouter les changements en temps réel
+    const unsubscribe = projectService.subscribeToProjects((firebaseProjects) => {
+      const convertedProjects = firebaseProjects.map(convertFirebaseProject);
+      set({
+        projects: convertedProjects,
+        loading: false,
+        error: null
+      });
+    });
+
+    // Stocker la fonction de nettoyage
+    (get() as any).unsubscribe = unsubscribe;
+  },
+
+  setProjects: (projects) => set({ projects }),
+  setLoading: (loading) => set({ loading }),
+  setError: (error) => set({ error })
+}));

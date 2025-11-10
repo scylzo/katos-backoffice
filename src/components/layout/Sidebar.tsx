@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, ShoppingBag, Settings, LogOut, Building2 } from 'lucide-react';
+import { LayoutDashboard, Users, ShoppingBag, Settings, LogOut, Building2, UserCog } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useLayout } from '../../hooks/useLayout';
 import { cn } from '../../utils/cn';
+import { RoleGuard } from '../RoleGuard';
 import logo from '../../assets/logo.png';
 
 const navigation = [
@@ -11,12 +12,14 @@ const navigation = [
   { name: 'Clients', href: '/clients', icon: Users },
   { name: 'Projets', href: '/projects', icon: Building2 },
   { name: 'Boutique', href: '/boutique', icon: ShoppingBag },
+  { name: 'Administrateurs', href: '/users', icon: UserCog, requiresPermission: 'canManageUsers' as const },
   { name: 'Paramètres', href: '/settings', icon: Settings },
 ];
 
 export const Sidebar: React.FC = () => {
   const { logout } = useAuthStore();
   const { isMobileMenuOpen, setIsMobileMenuOpen } = useLayout();
+
 
   const handleLogout = () => {
     logout();
@@ -73,27 +76,54 @@ export const Sidebar: React.FC = () => {
 
         {/* Navigation */}
         <nav className="flex-1 px-3 sm:px-4 py-4 sm:py-6 space-y-1 sm:space-y-2">
-          {navigation.map((item) => (
-            <NavLink
-              key={item.name}
-              to={item.href}
-              onClick={handleLinkClick}
-              className={({ isActive }) =>
-                cn(
-                  'group flex items-center px-3 py-2.5 sm:py-2 text-sm font-medium rounded-lg transition-colors touch-manipulation',
-                  isActive
-                    ? 'text-white shadow-md'
-                    : 'text-white/80 hover:text-white'
-                )
-              }
-              style={({ isActive }) => ({
-                backgroundColor: isActive ? '#E95E2D' : 'transparent'
-              })}
-            >
-              <item.icon className="w-5 h-5 mr-3 flex-shrink-0" />
-              <span className="truncate">{item.name}</span>
-            </NavLink>
-          ))}
+          {navigation.map((item) => {
+            if (item.requiresPermission) {
+              return (
+                <RoleGuard key={item.name} requiredPermission={item.requiresPermission}>
+                  <NavLink
+                    to={item.href}
+                    onClick={handleLinkClick}
+                    className={({ isActive }) =>
+                      cn(
+                        'group flex items-center px-3 py-2.5 sm:py-2 text-sm font-medium rounded-lg transition-colors touch-manipulation',
+                        isActive
+                          ? 'text-white shadow-md'
+                          : 'text-white/80 hover:text-white'
+                      )
+                    }
+                    style={({ isActive }) => ({
+                      backgroundColor: isActive ? '#E95E2D' : 'transparent'
+                    })}
+                  >
+                    <item.icon className="w-5 h-5 mr-3 flex-shrink-0" />
+                    <span className="truncate">{item.name}</span>
+                  </NavLink>
+                </RoleGuard>
+              );
+            }
+
+            return (
+              <NavLink
+                key={item.name}
+                to={item.href}
+                onClick={handleLinkClick}
+                className={({ isActive }) =>
+                  cn(
+                    'group flex items-center px-3 py-2.5 sm:py-2 text-sm font-medium rounded-lg transition-colors touch-manipulation',
+                    isActive
+                      ? 'text-white shadow-md'
+                      : 'text-white/80 hover:text-white'
+                  )
+                }
+                style={({ isActive }) => ({
+                  backgroundColor: isActive ? '#E95E2D' : 'transparent'
+                })}
+              >
+                <item.icon className="w-5 h-5 mr-3 flex-shrink-0" />
+                <span className="truncate">{item.name}</span>
+              </NavLink>
+            );
+          })}
         </nav>
 
         {/* Logout section */}

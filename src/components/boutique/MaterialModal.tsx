@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { storageService } from '../../services/storageService';
 import type { Material } from '../../types';
 
 interface MaterialModalProps {
@@ -18,15 +20,46 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
   material,
 }) => {
   const [formData, setFormData] = useState({
-    name: material?.name || '',
-    category: material?.category || '',
-    price: material?.price || 0,
-    image: material?.image || '',
-    supplier: material?.supplier || '',
-    description: material?.description || '',
+    name: '',
+    category: '',
+    price: 0,
+    image: '',
+    supplier: '',
+    description: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string>('');
+
+  // Mettre à jour le formulaire quand le matériau change
+  useEffect(() => {
+    if (material) {
+      setFormData({
+        name: material.name || '',
+        category: material.category || '',
+        price: material.price || 0,
+        image: material.image || '',
+        supplier: material.supplier || '',
+        description: material.description || '',
+      });
+      setImagePreview(material.image || '');
+    } else {
+      setFormData({
+        name: '',
+        category: '',
+        price: 0,
+        image: '',
+        supplier: '',
+        description: '',
+      });
+      setImagePreview('');
+    }
+    setErrors({});
+    setSelectedFile(null);
+    setUploading(false);
+  }, [material, isOpen]);
 
   const categories = [
     'Carrelage et Grès',
@@ -42,24 +75,70 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
     'Autre'
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    const newErrors: Record<string, string> = {};
+    try {
+      storageService.validateImageFile(file);
+      setSelectedFile(file);
+      setErrors({ ...errors, image: '' });
 
-    if (!formData.name) newErrors.name = 'Le nom est requis';
-    if (!formData.category) newErrors.category = 'La catégorie est requise';
-    if (!formData.price || formData.price <= 0) newErrors.price = 'Le prix doit être supérieur à 0';
-    if (!formData.supplier) newErrors.supplier = 'Le fournisseur est requis';
-    if (!formData.description) newErrors.description = 'La description est requise';
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
+      // Créer un aperçu local
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    } catch (error: any) {
+      setErrors({ ...errors, image: error.message });
     }
+  };
 
-    onSubmit(formData);
-    handleClose();
+  const removeImage = () => {
+    setSelectedFile(null);
+    setImagePreview('');
+    setFormData({ ...formData, image: '' });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUploading(true);
+
+    try {
+      const newErrors: Record<string, string> = {};
+
+      if (!formData.name) newErrors.name = 'Le nom est requis';
+      if (!formData.category) newErrors.category = 'La catégorie est requise';
+      if (!formData.price || formData.price <= 0) newErrors.price = 'Le prix doit être supérieur à 0';
+      if (!formData.supplier) newErrors.supplier = 'Le fournisseur est requis';
+      if (!formData.description) newErrors.description = 'La description est requise';
+
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        setUploading(false);
+        return;
+      }
+
+      let finalImageUrl = formData.image;
+
+      // Upload de l'image si un fichier est sélectionné
+      if (selectedFile) {
+        finalImageUrl = await storageService.uploadMaterialImage(selectedFile);
+      }
+
+      const materialData = {
+        ...formData,
+        image: finalImageUrl
+      };
+
+      onSubmit(materialData);
+      handleClose();
+    } catch (error: any) {
+      setErrors({ ...errors, image: error.message || 'Erreur lors de l\'upload' });
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleClose = () => {
@@ -72,6 +151,9 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
       description: '',
     });
     setErrors({});
+    setSelectedFile(null);
+    setImagePreview('');
+    setUploading(false);
     onClose();
   };
 
@@ -135,12 +217,74 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
           />
         </div>
 
-        <Input
-          label="URL de l'image"
-          value={formData.image}
-          onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-          placeholder="https://images.unsplash.com/photo-..."
-        />
+        {/* Section Upload Image */}
+        <div className="space-y-4">
+          <label className="block text-sm font-semibold text-gray-900">
+            Image du matériau
+          </label>
+
+          {/* Zone de glisser-déposer */}
+          <div className="relative">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+              id="image-upload"
+            />
+
+            {!imagePreview ? (
+              <label
+                htmlFor="image-upload"
+                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+              >
+                <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                <p className="text-sm text-gray-600">
+                  Cliquez pour sélectionner une image
+                </p>
+                <p className="text-xs text-gray-400">
+                  JPG, PNG, WebP (max 5MB)
+                </p>
+              </label>
+            ) : (
+              <div className="relative">
+                <img
+                  src={imagePreview}
+                  alt="Aperçu"
+                  className="w-full h-32 object-cover rounded-lg"
+                />
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {errors.image && (
+            <p className="text-red-600 text-xs mt-1">{errors.image}</p>
+          )}
+
+          {/* Option URL alternative */}
+          <div className="text-center">
+            <p className="text-xs text-gray-500 mb-2">ou</p>
+            <Input
+              label="URL d'image externe"
+              value={formData.image}
+              onChange={(e) => {
+                setFormData({ ...formData, image: e.target.value });
+                if (e.target.value && !selectedFile) {
+                  setImagePreview(e.target.value);
+                }
+              }}
+              placeholder="https://images.unsplash.com/photo-..."
+              size="sm"
+            />
+          </div>
+        </div>
 
         <div className="space-y-2">
           <label className="block text-sm font-semibold text-gray-900">
@@ -166,8 +310,8 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
           >
             Annuler
           </Button>
-          <Button type="submit">
-            {material ? 'Modifier' : 'Créer'}
+          <Button type="submit" disabled={uploading}>
+            {uploading ? 'Upload en cours...' : material ? 'Modifier' : 'Créer'}
           </Button>
         </div>
       </form>

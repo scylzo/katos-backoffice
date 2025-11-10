@@ -1,28 +1,68 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { AuthState } from '../types';
+import type { User } from 'firebase/auth';
+import type { FirebaseUser } from '../types/firebase';
+import { authService } from '../services/authService';
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      user: null,
-      isAuthenticated: false,
-      login: (email: string, password: string) => {
-        if (email === 'admin@katos.sn' && password === '1234') {
-          const user = {
-            id: '1',
-            email: 'admin@katos.sn',
-            name: 'Mamadou Mbaye'
-          };
-          set({ user, isAuthenticated: true });
-          return true;
-        }
-        return false;
-      },
-      logout: () => set({ user: null, isAuthenticated: false }),
-    }),
-    {
-      name: 'auth-storage',
+interface FirebaseAuthState {
+  user: User | null;
+  userData: FirebaseUser | null;
+  isAuthenticated: boolean;
+  loading: boolean;
+  error: string | null;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<boolean>;
+  setUser: (user: User | null) => void;
+  setUserData: (userData: FirebaseUser | null) => void;
+  setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+}
+
+export const useAuthStore = create<FirebaseAuthState>((set, get) => ({
+  user: null,
+  userData: null,
+  isAuthenticated: false,
+  loading: true,
+  error: null,
+
+  login: async (email: string, password: string) => {
+    try {
+      set({ loading: true, error: null });
+      const user = await authService.signIn(email, password);
+      const userData = await authService.getUserData(user.uid);
+      set({
+        user,
+        userData,
+        isAuthenticated: true,
+        loading: false
+      });
+      return true;
+    } catch (error: any) {
+      set({
+        error: error.message || 'Erreur de connexion',
+        loading: false
+      });
+      return false;
     }
-  )
-);
+  },
+
+  logout: async () => {
+    try {
+      await authService.signOut();
+      set({
+        user: null,
+        userData: null,
+        isAuthenticated: false,
+        error: null
+      });
+      return true;
+    } catch (error: any) {
+      set({ error: error.message || 'Erreur lors de la déconnexion' });
+      return false;
+    }
+  },
+
+  setUser: (user) => set({ user, isAuthenticated: !!user }),
+  setUserData: (userData) => set({ userData }),
+  setLoading: (loading) => set({ loading }),
+  setError: (error) => set({ error })
+}));
