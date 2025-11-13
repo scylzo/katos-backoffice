@@ -62,7 +62,21 @@ export const useAuthStore = create<FirebaseAuthState>((set, get) => ({
   },
 
   setUser: (user) => set({ user, isAuthenticated: !!user }),
-  setUserData: (userData) => set({ userData }),
+  setUserData: (userData) => {
+    // Vérifier si l'utilisateur est bloqué
+    if (userData && userData.isBlocked) {
+      // Déconnecter automatiquement si bloqué
+      authService.signOut();
+      set({
+        user: null,
+        userData: null,
+        isAuthenticated: false,
+        error: 'Votre compte a été bloqué. Veuillez vous reconnecter.'
+      });
+      return;
+    }
+    set({ userData });
+  },
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error })
 }));

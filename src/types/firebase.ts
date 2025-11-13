@@ -5,12 +5,16 @@ export interface FirebaseUser {
   uid: string;
   email: string;
   displayName: string;
+  username?: string; // Identifiant de connexion pour les clients
   phoneNumber?: string | null;
   clientId?: string;
   isTemporaryPassword?: boolean;
   role: UserRole;
+  isChef?: boolean; // Permet aux admins d'avoir aussi le rôle de chef
   createdAt: Timestamp;
   createdBy?: string; // UID de l'utilisateur qui a créé ce compte
+  isBlocked?: boolean;
+  blockedAt?: Timestamp | null;
 }
 
 export interface FirebaseClient {

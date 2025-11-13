@@ -256,7 +256,7 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
                 <button
                   type="button"
                   onClick={removeImage}
-                  className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                  className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>

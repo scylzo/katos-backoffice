@@ -9,15 +9,26 @@ import {
   EmailAuthProvider,
   reauthenticateWithCredential
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, Timestamp, deleteDoc } from 'firebase/firestore';
-import { auth, db } from '../config/firebase';
+import { doc, setDoc, getDoc, Timestamp, deleteDoc, collection, getDocs, updateDoc, query, orderBy, where } from 'firebase/firestore';
+import { auth, db, app } from '../config/firebase';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import type { FirebaseUser } from '../types/firebase';
 import { UserRole } from '../types/roles';
 
 export class AuthService {
   async signIn(email: string, password: string): Promise<User> {
     const result = await signInWithEmailAndPassword(auth, email, password);
-    return result.user;
+    const user = result.user;
+
+    // Vérifier si l'utilisateur est bloqué
+    const userData = await this.getUserData(user.uid);
+    if (userData && userData.isBlocked) {
+      // Se déconnecter immédiatement si bloqué
+      await signOut(auth);
+      throw new Error('Votre compte a été bloqué. Contactez l\'administrateur.');
+    }
+
+    return user;
   }
 
   async signUp(
@@ -142,62 +153,224 @@ export class AuthService {
     return password;
   }
 
+  // Générer un identifiant client unique
+  generateClientUsername(): string {
+    const prefix = 'CLI';
+    const timestamp = Date.now().toString().slice(-6); // 6 derniers chiffres du timestamp
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `${prefix}${timestamp}${random}`;
+  }
+
+  // Vérifier si un identifiant existe déjà
+  async isUsernameAvailable(username: string): Promise<boolean> {
+    try {
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('username', '==', username));
+      const snapshot = await getDocs(q);
+      return snapshot.empty;
+    } catch (error) {
+      console.error('Erreur lors de la vérification de l\'identifiant:', error);
+      return false;
+    }
+  }
+
+  // Générer un identifiant unique disponible
+  async generateUniqueUsername(): Promise<string> {
+    let username = this.generateClientUsername();
+    let attempts = 0;
+
+    while (!(await this.isUsernameAvailable(username)) && attempts < 10) {
+      username = this.generateClientUsername();
+      attempts++;
+    }
+
+    if (attempts >= 10) {
+      throw new Error('Impossible de générer un identifiant unique');
+    }
+
+    return username;
+  }
+
   // Créer un compte client avec mot de passe temporaire
   async createClientAccount(
     email: string,
     clientName: string,
     clientId: string
-  ): Promise<{ success: boolean; tempPassword?: string; uid?: string; error?: string }> {
+  ): Promise<{ success: boolean; tempPassword?: string; username?: string; uid?: string; error?: string }> {
     try {
       const tempPassword = this.generateTemporaryPassword();
+      const username = await this.generateUniqueUsername();
 
-      // Sauvegarder l'utilisateur actuel (admin)
-      const currentUser = auth.currentUser;
-      const currentUserEmail = currentUser?.email;
+      // Sauvegarder l'utilisateur admin actuel
+      const adminUser = auth.currentUser;
+      const adminToken = await adminUser?.getIdToken();
 
-      if (!currentUser || !currentUserEmail) {
+      if (!adminUser || !adminToken) {
         return {
           success: false,
           error: 'Aucun utilisateur admin connecté'
         };
       }
 
-      // Créer le compte Firebase Auth
+      console.log('Admin actuel sauvegardé:', adminUser.email);
+
+      // Créer le compte client (cela va malheureusement déconnecter l'admin)
       const result = await createUserWithEmailAndPassword(auth, email, tempPassword);
-      const user = result.user;
+      const newUser = result.user;
+
+      console.log('Compte client créé:', newUser.email);
 
       // Mettre à jour le profil
-      await updateProfile(user, { displayName: clientName });
+      await updateProfile(newUser, { displayName: clientName });
 
       // Créer le document utilisateur
       const userData: FirebaseUser = {
-        uid: user.uid,
-        email: user.email!,
+        uid: newUser.uid,
+        email: newUser.email!,
         displayName: clientName,
+        username: username,
         role: UserRole.CLIENT,
         createdAt: Timestamp.now(),
         clientId: clientId,
-        isTemporaryPassword: true // Marquer comme mot de passe temporaire
+        isTemporaryPassword: true
       };
 
-      await setDoc(doc(db, 'users', user.uid), userData);
+      await setDoc(doc(db, 'users', newUser.uid), userData);
 
-      // Se déconnecter du compte client qui vient d'être créé
+      // Déconnecter le client
       await signOut(auth);
 
-      // Remarque : L'admin devra se reconnecter
-      // Dans une vraie application, nous utiliserions l'Admin SDK ou une Cloud Function
+      console.log('Compte client créé et déconnecté');
+
+      // NOTE: L'admin sera déconnecté. C'est une limitation de Firebase côté client.
+      // Pour éviter cela, il faudrait utiliser Firebase Admin SDK côté serveur.
 
       return {
         success: true,
         tempPassword,
-        uid: user.uid
+        username,
+        uid: newUser.uid
       };
     } catch (error: any) {
       console.error('Erreur lors de la création du compte client:', error);
+
+      let errorMessage = 'Erreur lors de la création du compte';
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'Un compte existe déjà avec cet email';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Le mot de passe généré est trop faible';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Email invalide';
+      }
+
       return {
         success: false,
-        error: error.message
+        error: errorMessage
+      };
+    }
+  }
+
+  // Récupérer tous les utilisateurs
+  async getAllUsers(): Promise<FirebaseUser[]> {
+    try {
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+
+      return snapshot.docs.map(doc => ({
+        uid: doc.id,
+        ...doc.data()
+      } as FirebaseUser));
+    } catch (error) {
+      console.error('Erreur lors de la récupération des utilisateurs:', error);
+      return [];
+    }
+  }
+
+  // Bloquer/débloquer un utilisateur
+  async toggleUserStatus(uid: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const userRef = doc(db, 'users', uid);
+      const userDoc = await getDoc(userRef);
+
+      if (!userDoc.exists()) {
+        return { success: false, error: 'Utilisateur non trouvé' };
+      }
+
+      const userData = userDoc.data() as FirebaseUser;
+      const currentStatus = userData.isBlocked || false; // par défaut false si undefined
+      const newStatus = !currentStatus;
+
+      await updateDoc(userRef, {
+        isBlocked: newStatus,
+        blockedAt: newStatus ? Timestamp.now() : null
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error('Erreur lors du changement de statut utilisateur:', error);
+      return {
+        success: false,
+        error: 'Erreur lors du changement de statut'
+      };
+    }
+  }
+
+  // Supprimer un utilisateur
+  async deleteUser(uid: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const userRef = doc(db, 'users', uid);
+      await deleteDoc(userRef);
+
+      return { success: true };
+    } catch (error) {
+      console.error('Erreur lors de la suppression de l\'utilisateur:', error);
+      return {
+        success: false,
+        error: 'Erreur lors de la suppression'
+      };
+    }
+  }
+
+  // Régénérer les accès d'un client (nouveau mot de passe et identifiant)
+  async regenerateClientAccess(uid: string): Promise<{ success: boolean; username?: string; tempPassword?: string; error?: string }> {
+    try {
+      const userRef = doc(db, 'users', uid);
+      const userDoc = await getDoc(userRef);
+
+      if (!userDoc.exists()) {
+        return { success: false, error: 'Utilisateur non trouvé' };
+      }
+
+      const userData = userDoc.data() as FirebaseUser;
+
+      if (userData.role !== UserRole.CLIENT) {
+        return { success: false, error: 'Cette action est réservée aux clients' };
+      }
+
+      // Générer de nouveaux identifiants
+      const newUsername = await this.generateUniqueUsername();
+      const newPassword = this.generateTemporaryPassword();
+
+      // Mettre à jour le document utilisateur
+      await updateDoc(userRef, {
+        username: newUsername,
+        isTemporaryPassword: true // Marquer comme temporaire
+      });
+
+      // Note: Pour changer le mot de passe Firebase Auth, il faudrait utiliser l'Admin SDK
+      // Pour l'instant, nous retournons juste les nouveaux identifiants
+
+      return {
+        success: true,
+        username: newUsername,
+        tempPassword: newPassword
+      };
+    } catch (error: any) {
+      console.error('Erreur lors de la régénération des accès:', error);
+      return {
+        success: false,
+        error: 'Erreur lors de la régénération des accès'
       };
     }
   }

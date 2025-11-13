@@ -1,6 +1,7 @@
 export const UserRole = {
   SUPER_ADMIN: 'super_admin',
   ADMIN: 'admin',
+  CHEF: 'chef',
   CLIENT: 'client'
 } as const;
 
@@ -38,6 +39,16 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canManageMaterials: true,
     canManageSettings: false,
   },
+  [UserRole.CHEF]: {
+    canCreateAdmins: false,
+    canCreateClients: false,
+    canManageUsers: false,
+    canDeleteUsers: false,
+    canViewDashboard: true,
+    canManageProjects: true,
+    canManageMaterials: true,
+    canManageSettings: false,
+  },
   [UserRole.CLIENT]: {
     canCreateAdmins: false,
     canCreateClients: false,
@@ -64,6 +75,7 @@ export const canUserPerformAction = (
 export const ROLE_LABELS: Record<UserRole, string> = {
   [UserRole.SUPER_ADMIN]: 'Super Administrateur',
   [UserRole.ADMIN]: 'Administrateur',
+  [UserRole.CHEF]: 'Chef de Chantier',
   [UserRole.CLIENT]: 'Client',
 };
 

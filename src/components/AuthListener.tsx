@@ -15,6 +15,14 @@ export const AuthListener: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(firebaseUser);
         try {
           const userData = await authService.getUserData(firebaseUser.uid);
+
+          // Vérifier si l'utilisateur est bloqué
+          if (userData && userData.isBlocked) {
+            // Déconnecter l'utilisateur bloqué
+            await authService.signOut();
+            return;
+          }
+
           setUserData(userData);
         } catch (error) {
           console.error('Erreur lors de la récupération des données utilisateur:', error);

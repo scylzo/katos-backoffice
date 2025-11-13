@@ -198,28 +198,26 @@ export class InvitationService {
 
       const clientEmail = email || clientData.email;
 
-      // Créer ou récupérer une invitation pour ce client
-      let invitation = await this.getOrCreateInvitation(clientId, clientEmail);
+      // Vérifier si un compte existe déjà pour ce client
+      if (clientData.userId) {
+        return {
+          success: false,
+          error: 'Un compte existe déjà pour ce client'
+        };
+      }
 
-      // Utiliser authService pour créer le compte client avec mot de passe temporaire
-      const { authService } = await import('./authService');
-      const result = await authService.createClientAccount(
+      // Utiliser le nouveau service de création de comptes clients
+      const { clientAccountService } = await import('./clientAccountService');
+      const result = await clientAccountService.createClientAccount(
         clientEmail,
         `${clientData.prenom} ${clientData.nom}`,
         clientId
       );
 
-      if (result.success) {
-        // Mettre à jour le statut de l'invitation
-        if (invitation.id) {
-          const invitationRef = doc(db, 'invitations', invitation.id);
-          await updateDoc(invitationRef, {
-            status: 'accepted',
-            acceptedAt: Timestamp.now()
-          });
-        }
+      console.log('Résultat de createClientAccount:', result);
 
-        // Mettre à jour le client avec l'userId
+      if (result.success) {
+        // Mettre à jour le client avec l'userId (l'admin est toujours connecté ✅)
         if (result.uid) {
           await updateDoc(clientRef, {
             userId: result.uid,
@@ -228,11 +226,21 @@ export class InvitationService {
         }
 
         // Formater les identifiants pour l'affichage
-        const credentials = `Email: ${clientEmail}
-Mot de passe temporaire: ${result.tempPassword}
+        const credentials = `🔑 IDENTIFIANTS DE CONNEXION
 
-⚠️ IMPORTANT: Ce mot de passe est temporaire.
-Le client devra le changer lors de sa première connexion.`;
+Identifiant: ${result.username}
+Mot de passe: ${result.tempPassword}
+
+📱 Instructions de connexion:
+1. Utilisez l'identifiant (pas l'email)
+2. Entrez le mot de passe fourni
+3. Changez le mot de passe lors de la première connexion
+
+⚠️ IMPORTANT:
+- Gardez ces informations confidentielles
+- Le mot de passe doit être changé à la première connexion`;
+
+        console.log('Credentials formatées:', credentials);
 
         return {
           success: true,
@@ -356,6 +364,7 @@ Le client devra le changer lors de sa première connexion.`;
       return false;
     }
   }
+
 }
 
 export const invitationService = new InvitationService();

@@ -12,9 +12,17 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
+// App principale
 const app = initializeApp(firebaseConfig);
 
+// Instance Auth principale pour l'admin
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+// Instance séparée pour créer des comptes clients sans affecter la session admin
+const clientApp = initializeApp(firebaseConfig, 'client-creation');
+export const clientAuth = getAuth(clientApp);
+
+export { app };
 export default app;

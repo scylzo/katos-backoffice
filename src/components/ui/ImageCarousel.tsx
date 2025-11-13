@@ -99,14 +99,14 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = ({
         <>
           <button
             onClick={prevImage}
-            className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1 sm:p-1.5 rounded-full transition-all opacity-70 sm:opacity-0 sm:group-hover:opacity-100 touch-manipulation"
+            className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1 sm:p-1.5 rounded-full transition-all opacity-70 sm:opacity-0 sm:group-hover:opacity-100 touch-manipulation cursor-pointer"
             aria-label="Image précédente"
           >
             <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
           </button>
           <button
             onClick={nextImage}
-            className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1 sm:p-1.5 rounded-full transition-all opacity-70 sm:opacity-0 sm:group-hover:opacity-100 touch-manipulation"
+            className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1 sm:p-1.5 rounded-full transition-all opacity-70 sm:opacity-0 sm:group-hover:opacity-100 touch-manipulation cursor-pointer"
             aria-label="Image suivante"
           >
             <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -121,7 +121,7 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = ({
             <button
               key={index}
               onClick={() => goToImage(index)}
-              className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all touch-manipulation ${
+              className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all touch-manipulation cursor-pointer ${
                 index === currentIndex
                   ? 'bg-white scale-110'
                   : 'bg-white/60 hover:bg-white/80'

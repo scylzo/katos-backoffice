@@ -16,7 +16,7 @@ export const TopBar: React.FC = () => {
           {/* Mobile menu button */}
           <button
             onClick={toggleMobileMenu}
-            className="lg:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-all touch-manipulation"
+            className="lg:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-all touch-manipulation cursor-pointer"
             aria-label="Toggle menu"
           >
             {isMobileMenuOpen ? (

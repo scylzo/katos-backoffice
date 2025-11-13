@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, ShoppingBag, Settings, LogOut, Building2, UserCog } from 'lucide-react';
+import { LayoutDashboard, Users, ShoppingBag, Settings, LogOut, Building2, UserCog, HardHat } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useLayout } from '../../hooks/useLayout';
 import { cn } from '../../utils/cn';
@@ -11,6 +11,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Clients', href: '/clients', icon: Users },
   { name: 'Projets', href: '/projects', icon: Building2 },
+  { name: 'Chantiers', href: '/chantiers', icon: HardHat },
   { name: 'Boutique', href: '/boutique', icon: ShoppingBag },
   { name: 'Administrateurs', href: '/users', icon: UserCog, requiresPermission: 'canManageUsers' as const },
   { name: 'Paramètres', href: '/settings', icon: Settings },
@@ -56,7 +57,7 @@ export const Sidebar: React.FC = () => {
       {/* Mobile overlay */}
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden cursor-pointer"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
@@ -133,7 +134,7 @@ export const Sidebar: React.FC = () => {
               handleLogout();
               handleLinkClick();
             }}
-            className="w-full flex items-center px-3 py-2.5 sm:py-2 mt-4 text-sm font-medium text-white/80 rounded-lg hover:text-white transition-colors touch-manipulation"
+            className="w-full flex items-center px-3 py-2.5 sm:py-2 mt-4 text-sm font-medium text-white/80 rounded-lg hover:text-white transition-colors touch-manipulation cursor-pointer"
           >
             <LogOut className="w-5 h-5 mr-3 flex-shrink-0" />
             <span className="truncate">Déconnexion</span>

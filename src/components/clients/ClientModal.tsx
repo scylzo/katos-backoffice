@@ -19,13 +19,20 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   onSubmit,
   client,
 }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    nom: string;
+    prenom: string;
+    email: string;
+    localisationSite: string;
+    projetAdhere: string;
+    status: 'En cours' | 'Terminé' | 'En attente';
+  }>({
     nom: '',
     prenom: '',
     email: '',
     localisationSite: '',
     projetAdhere: '',
-    status: 'En attente' as const,
+    status: 'En attente',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -75,7 +82,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       return;
     }
 
-    onSubmit(formData);
+    onSubmit({
+      ...formData,
+      invitationStatus: 'pending' as const
+    });
     handleClose();
   };
 
@@ -102,6 +112,14 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       <div className="space-y-6">
         <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+           <Input
+            label="Prénom"
+            value={formData.prenom}
+            onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
+            error={errors.prenom}
+            placeholder="Amadou"
+          />
+
           <Input
             label="Nom"
             value={formData.nom}
@@ -110,13 +128,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
             placeholder="Diallo"
           />
 
-          <Input
-            label="Prénom"
-            value={formData.prenom}
-            onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
-            error={errors.prenom}
-            placeholder="Amadou"
-          />
         </div>
 
         <Input

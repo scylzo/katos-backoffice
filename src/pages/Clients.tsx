@@ -189,14 +189,14 @@ export const Clients: React.FC = () => {
                     <td className="hidden lg:table-cell px-3 sm:px-6 py-3 sm:py-4">
                       <div className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${
-                          client.invitationStatus === 'accepted' ? 'bg-green-500' :
-                          client.invitationStatus === 'pending' || client.invitationStatus === 'sent' ? 'bg-yellow-500' :
+                          client.userId ? 'bg-green-500' :
+                          client.email ? 'bg-yellow-500' :
                           'bg-gray-300'
                         }`} />
                         <span className="text-xs text-gray-600">
-                          {client.invitationStatus === 'accepted' ? 'Connecté' :
-                           client.invitationStatus === 'pending' || client.invitationStatus === 'sent' ? 'En attente' :
-                           'Non invité'}
+                          {client.userId ? 'Connecté' :
+                           client.email ? 'Compte créé' :
+                           'Pas de compte'}
                         </span>
                       </div>
                     </td>

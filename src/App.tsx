@@ -9,6 +9,8 @@ import { Register } from './pages/Register';
 import { Dashboard } from './pages/Dashboard';
 import { Clients } from './pages/Clients';
 import { Projects } from './pages/Projects';
+import { Chantiers } from './pages/Chantiers';
+import { ChantierDetail } from './pages/ChantierDetail';
 import { Boutique } from './pages/Boutique';
 import { Users } from './pages/Users';
 import { Settings } from './pages/Settings';
@@ -35,6 +37,8 @@ function App() {
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="clients" element={<Clients />} />
                 <Route path="projects" element={<Projects />} />
+                <Route path="chantiers" element={<Chantiers />} />
+                <Route path="chantiers/:id" element={<ChantierDetail />} />
                 <Route path="boutique" element={<Boutique />} />
                 <Route path="users" element={<Users />} />
                 <Route path="settings" element={<Settings />} />

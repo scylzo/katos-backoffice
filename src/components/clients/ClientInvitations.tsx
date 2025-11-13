@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Send, Check, X, Clock, AlertCircle, RotateCcw, Copy, ExternalLink } from 'lucide-react';
+import { Mail, Send, Check, X, Clock, AlertCircle, RotateCcw, Copy } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -29,8 +29,10 @@ export const ClientInvitations: React.FC<ClientInvitationsProps> = ({
 
     setLoading(true);
     try {
-      const clientInvitations = await invitationService.getClientInvitations(client.id);
-      setInvitations(clientInvitations);
+      // Pour l'instant, on skip le chargement des invitations pour éviter les problèmes de permissions
+      // const clientInvitations = await invitationService.getClientInvitations(client.id);
+      // setInvitations(clientInvitations);
+      setInvitations([]);
     } catch (error) {
       console.error('Erreur lors du chargement des invitations:', error);
       toast.error('Impossible de charger les invitations');
@@ -51,16 +53,19 @@ export const ClientInvitations: React.FC<ClientInvitationsProps> = ({
       const result = await invitationService.createClientAccount(client.id, client.email);
 
       if (result.success) {
+        console.log('Compte créé avec succès, credentials:', result.credentials);
+
         setCredentials(result.credentials || '');
-        toast.success('Compte créé avec succès. Vous allez être déconnecté du backoffice et devrez vous reconnecter.');
+        toast.success('Compte créé', {
+          autoClose: 3000
+        });
+
         await loadInvitations();
         onUpdate?.();
 
-        // Redirection vers la page de login après un délai
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 3000);
+        console.log('État credentials après mise à jour:', result.credentials);
       } else {
+        console.error('Erreur lors de la création:', result.error);
         toast.error(result.error || 'Erreur lors de la création du compte');
       }
     } catch (error) {
@@ -137,16 +142,17 @@ export const ClientInvitations: React.FC<ClientInvitationsProps> = ({
     loadInvitations();
   }, [client.id]);
 
-  // Écouter les changements en temps réel
+  // Écouter les changements en temps réel - désactivé temporairement
   useEffect(() => {
     if (!client.id) return;
 
-    const unsubscribe = invitationService.subscribeToInvitations((allInvitations) => {
-      const clientInvitations = allInvitations.filter(inv => inv.clientId === client.id);
-      setInvitations(clientInvitations);
-    });
+    // Temporairement désactivé pour éviter les problèmes de permissions
+    // const unsubscribe = invitationService.subscribeToInvitations((allInvitations) => {
+    //   const clientInvitations = allInvitations.filter(inv => inv.clientId === client.id);
+    //   setInvitations(clientInvitations);
+    // });
 
-    return unsubscribe;
+    // return unsubscribe;
   }, [client.id]);
 
   const getStatusIcon = (status: FirebaseInvitation['status']) => {
@@ -208,16 +214,21 @@ export const ClientInvitations: React.FC<ClientInvitationsProps> = ({
     return !client.userId;
   };
 
-  const getAccountMessage = () => {
+  const getAccountStatus = () => {
     if (!client.email) {
-      return 'Aucun email renseigné pour ce client';
+      return { status: 'no-email', dot: '●', color: 'text-gray-400', text: 'Email requis' };
     }
 
     if (client.userId) {
-      return `Client connecté depuis le ${client.acceptedAt?.toDate().toLocaleDateString('fr-FR') || 'date inconnue'}`;
+      return {
+        status: 'active',
+        dot: '●',
+        color: 'text-green-500',
+        text: `Connecté le ${client.acceptedAt?.toDate().toLocaleDateString('fr-FR') || ''}`
+      };
     }
 
-    return 'Aucun compte créé';
+    return { status: 'no-account', dot: '●', color: 'text-gray-400', text: 'Aucun compte' };
   };
 
   return (
@@ -250,53 +261,55 @@ export const ClientInvitations: React.FC<ClientInvitationsProps> = ({
       </div>
 
       <div className="space-y-4">
-        {/* Statut de connexion */}
+        {/* Statut de connexion - Version minimaliste */}
         <div className="p-3 bg-gray-50 rounded-lg">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">Email du client :</span>
+            <span className="text-gray-600">Email</span>
             <span className="font-medium text-gray-900">{client.email || 'Non renseigné'}</span>
           </div>
           <div className="flex items-center justify-between text-sm mt-2">
-            <span className="text-gray-600">Statut du compte :</span>
-            <span className="text-gray-900">{getAccountMessage()}</span>
+            <span className="text-gray-600">Statut</span>
+            <div className="flex items-center gap-2">
+              <span className={`${getAccountStatus().color} text-lg leading-none`}>{getAccountStatus().dot}</span>
+              <span className="text-gray-900 text-xs">{getAccountStatus().text}</span>
+            </div>
           </div>
         </div>
 
-        {/* Identifiants de connexion créés */}
+        {/* Identifiants de connexion créés - Version épurée */}
         {credentials && (
-          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1">
-                <h4 className="text-sm font-medium text-green-900 mb-2 flex items-center gap-2">
-                  <Check className="w-4 h-4" />
-                  Compte créé avec succès
-                </h4>
-                <p className="text-sm text-green-800 mb-3">
-                  Le compte a été créé. Transmettez ces identifiants au client pour qu'il puisse se connecter.
-                </p>
-                <div className="bg-white border border-green-300 rounded p-3">
-                  <pre className="text-sm text-gray-700 whitespace-pre-wrap">{credentials}</pre>
-                </div>
-                <div className="mt-3 flex gap-2">
-                  <Button
-                    onClick={() => navigator.clipboard.writeText(credentials)}
-                    size="sm"
-                    variant="outline"
-                    className="flex items-center gap-1 text-green-600 border-green-300 hover:bg-green-100"
-                  >
-                    <Copy className="w-4 h-4" />
-                    Copier les identifiants
-                  </Button>
-                </div>
+          <div className="border border-green-200 rounded-lg overflow-hidden">
+            <div className="bg-green-50 px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-green-500 text-lg">●</span>
+                <span className="text-sm font-medium text-green-900">Compte créé</span>
               </div>
               <Button
                 onClick={() => setCredentials(null)}
                 size="sm"
                 variant="outline"
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 border-none"
               >
                 <X className="w-4 h-4" />
               </Button>
+            </div>
+            <div className="bg-white p-4">
+              <div className="bg-gray-900 rounded-lg p-4 font-mono text-sm text-gray-100">
+                <pre className="whitespace-pre-wrap leading-relaxed">{credentials}</pre>
+              </div>
+              <div className="mt-3">
+                <Button
+                  onClick={() => {
+                    navigator.clipboard.writeText(credentials);
+                    toast.success('Identifiants copiés', { autoClose: 2000 });
+                  }}
+                  size="sm"
+                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                >
+                  <Copy className="w-4 h-4" />
+                  Copier
+                </Button>
+              </div>
             </div>
           </div>
         )}
@@ -374,20 +387,15 @@ export const ClientInvitations: React.FC<ClientInvitationsProps> = ({
               </div>
             ))}
           </div>
-        ) : (
-          <div className="text-center py-6 text-gray-500">
-            <Mail className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-            <p className="text-sm">Aucune invitation envoyée</p>
-          </div>
-        )}
+        ) : null}
 
-        {/* Message d'aide */}
+        {/* Message d'aide - Version minimaliste */}
         {!canCreateAccount() && client.email && (
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
-              💡 <strong>Info :</strong> Le compte a déjà été créé pour ce client.
-              Il peut maintenant se connecter avec ses identifiants.
-            </p>
+          <div className="p-3 bg-blue-50 rounded-lg">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-blue-500">●</span>
+              <span className="text-blue-800">Compte déjà créé</span>
+            </div>
           </div>
         )}
       </div>

@@ -149,6 +149,28 @@ export class UserService {
     }
   }
 
+  // Récupérer tous les utilisateurs qui peuvent être chefs de chantier
+  async getAvailableChefs(): Promise<FirebaseUser[]> {
+    try {
+      const usersRef = collection(db, 'users');
+      const snapshot = await getDocs(usersRef);
+
+      const allUsers = snapshot.docs.map(doc => doc.data() as FirebaseUser);
+
+      // Filtrer les utilisateurs qui peuvent être chefs
+      const availableChefs = allUsers.filter(user =>
+        user.role === UserRole.CHEF ||
+        (user.role === UserRole.ADMIN && user.isChef === true) ||
+        user.role === UserRole.SUPER_ADMIN
+      );
+
+      return availableChefs.sort((a, b) => a.displayName.localeCompare(b.displayName));
+    } catch (error) {
+      console.error('Erreur lors de la récupération des chefs disponibles:', error);
+      return [];
+    }
+  }
+
   // Supprimer un utilisateur
   async deleteUser(uid: string): Promise<{ success: boolean; error?: string }> {
     try {
@@ -177,6 +199,22 @@ export class UserService {
       return { success: true };
     } catch (error: any) {
       console.error('Erreur lors de la mise à jour du rôle:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  // Mettre à jour le statut chef d'un utilisateur
+  async updateChefStatus(uid: string, isChef: boolean): Promise<{ success: boolean; error?: string }> {
+    try {
+      const userRef = doc(db, 'users', uid);
+      await setDoc(userRef, { isChef }, { merge: true });
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('Erreur lors de la mise à jour du statut chef:', error);
       return {
         success: false,
         error: error.message

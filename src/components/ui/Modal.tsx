@@ -30,7 +30,7 @@ export const Modal: React.FC<ModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div
-        className="fixed inset-0 transition-opacity backdrop-blur-sm"
+        className="fixed inset-0 transition-opacity backdrop-blur-sm cursor-pointer"
         onClick={onClose}
       >
         <div className="absolute inset-0 bg-black/60"></div>
