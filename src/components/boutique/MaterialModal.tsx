@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
-import { Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -281,7 +282,7 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
                 }
               }}
               placeholder="https://images.unsplash.com/photo-..."
-              size="sm"
+              size={12}
             />
           </div>
         </div>
